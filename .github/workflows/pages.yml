@@ -1,0 +1,94 @@
+name: Publish static GitHub Pages preview
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      APP_ENV: production
+      APP_DEBUG: false
+      APP_URL: http://127.0.0.1:8082
+      DEALER_NAME: '[TÊN ĐẠI LÝ CHỜ XÁC NHẬN]'
+      DEALER_ADDRESS: '[ĐỊA CHỈ CHỜ XÁC NHẬN]'
+      DEALER_HOTLINE: '[HOTLINE]'
+      DEALER_ZALO: '[ZALO]'
+      DEALER_EMAIL: '[EMAIL]'
+      DEALER_FANPAGE: '[LINK]'
+      DEALER_MAPS_URL: '[LINK]'
+      DEALER_HOURS: '[GIỜ HOẠT ĐỘNG]'
+      DB_CONNECTION: sqlite
+      DB_DATABASE: database/database.sqlite
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: bcmath, curl, dom, fileinfo, gd, intl, mbstring, pdo_sqlite, sqlite3, zip
+          tools: composer:v2
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Generate an ephemeral application key
+        run: echo "APP_KEY=base64:$(php -r 'echo base64_encode(random_bytes(32));')" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          npm ci
+
+      - name: Build application assets
+        run: npm run build
+
+      - name: Seed a disposable preview database
+        run: |
+          mkdir -p database
+          touch database/database.sqlite
+          php artisan migrate --seed --force
+
+      - name: Render static preview pages
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8082 > /tmp/toyota-preview-server.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8082/sitemap.xml > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          SITE_URL=http://127.0.0.1:8082 PAGES_BASE_PATH=/toyota/ node scripts/export-static-preview.mjs
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .pages-preview
+
+      - name: Publish GitHub Pages preview
+        id: deployment
+        uses: actions/deploy-pages@v4
