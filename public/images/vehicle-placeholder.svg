@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Toyota Kon Tum</title>
+  <desc id="desc">Hình minh họa xe Toyota</desc>
+  <rect width="1200" height="675" fill="#f1f5f9"/>
+  <path d="M230 410h740l-70-125c-18-33-50-54-88-58l-330-33c-45-5-87 17-110 55l-68 113h-74v91h80c12 38 47 65 88 65s76-27 88-65h310c12 38 47 65 88 65s76-27 88-65h76v-43H230zm189-180 355 35c22 2 42 15 53 34l48 86H323l56-93c9-15 24-23 40-22zM398 521a45 45 0 1 1 0-90 45 45 0 0 1 0 90zm486 0a45 45 0 1 1 0-90 45 45 0 0 1 0 90z" fill="#94a3b8"/>
+  <text x="600" y="600" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" fill="#475569">Ảnh sẽ được cập nhật</text>
+</svg>
