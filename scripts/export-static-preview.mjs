@@ -35,6 +35,26 @@ if (pagePaths.length === 0) {
     throw new Error('The application sitemap did not contain any local pages.');
 }
 
+const localEnv = await readFile('.env', 'utf8').catch(() => '');
+const privatePlaceholders = {
+    DEALER_NAME: '[TÊN ĐẠI LÝ CHỜ XÁC NHẬN]',
+    DEALER_ADDRESS: '[ĐỊA CHỈ CHỜ XÁC NHẬN]',
+    DEALER_HOTLINE: '[HOTLINE]',
+    DEALER_ZALO: '[ZALO]',
+    DEALER_EMAIL: '[EMAIL]',
+    DEALER_FANPAGE: '[LINK]',
+    DEALER_MAPS_URL: '[LINK]',
+    DEALER_HOURS: '[GIỜ HOẠT ĐỘNG]',
+};
+const privateValues = Object.keys(privatePlaceholders).flatMap((key) => {
+    const match = localEnv.match(new RegExp(`^${key}=(?:"([^"]*)"|'([^']*)'|([^\\r\\n]*))$`, 'm'));
+    const configuredValue = process.env[key] ?? match?.[1] ?? match?.[2] ?? match?.[3];
+
+    return configuredValue && configuredValue.length > 2 && !configuredValue.startsWith('[')
+        ? [[configuredValue, privatePlaceholders[key]]]
+        : [];
+});
+
 const assetPaths = new Set();
 const staticPath = (pathname) => `${basePath}${pathname.replace(/^\/+/, '')}`;
 const outputPage = (pathname) => path.join(
@@ -143,6 +163,9 @@ await writeFile(placeholderDestination, await readFile(publicPlaceholder));
 
 for (const [pathname, originalHtml] of sourcePages) {
     let html = originalHtml.replaceAll(siteUrl.origin, `https://trithai1121.github.io${basePath.slice(0, -1)}`);
+    for (const [value, placeholderText] of privateValues) {
+        html = html.replaceAll(value, placeholderText);
+    }
     html = html.replace(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi, '');
     html = html.replace(/\b0\d(?:[\s.-]?\d){8,9}\b/g, '[HOTLINE]');
     html = html.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[EMAIL]');
